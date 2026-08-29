@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kundalik</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    background: #1e1e1e;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    padding: 24px 16px;
+  }
+  .app {
+    width: 100%;
+    max-width: 460px;
+  }
+  h2 {
+    color: #fff;
+    margin-bottom: 4px;
+  }
+  p.sub {
+    color: #aaa;
+    font-size: 13px;
+    margin-top: 0;
+    margin-bottom: 16px;
+  }
+  textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid #3a3a3a;
+    background: #2a2a2a;
+    color: #fff;
+    font-size: 15px;
+    resize: vertical;
+    font-family: inherit;
+  }
+  button {
+    width: 100%;
+    height: 46px;
+    border-radius: 12px;
+    border: none;
+    background: #3b7dd8;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+  button:hover { background: #4a8ae0; }
+  #status {
+    font-size: 12px;
+    color: #8bc98b;
+    margin-top: 8px;
+    height: 16px;
+  }
+  h3 {
+    color: #fff;
+    margin-top: 28px;
+    margin-bottom: 10px;
+    font-size: 16px;
+  }
+  .card {
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    position: relative;
+  }
+  .date {
+    font-size: 11px;
+    color: #999;
+    margin-bottom: 5px;
+  }
+  .text {
+    font-size: 14px;
+    color: #fff;
+    white-space: pre-wrap;
+    word-break: break-word;
+    padding-right: 20px;
+  }
+  .del {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    background: none;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    font-size: 14px;
+    width: auto;
+    height: auto;
+    margin: 0;
+  }
+  .empty {
+    color: #999;
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <h2>📔 Kundalik</h2>
+  <p class="sub">Fikrlaringizni yozib boring</p>
+
+  <textarea id="entryText" placeholder="Bugun nima bo'ldi?"></textarea>
+  <button id="saveBtn">Saqlash</button>
+  <div id="status"></div>
+
+  <h3>Yozuvlar</h3>
+  <div id="entries"></div>
+</div>
+
+<script>
+const entryText = document.getElementById('entryText');
+const saveBtn = document.getElementById('saveBtn');
+const status = document.getElementById('status');
+const entriesDiv = document.getElementById('entries');
+const STORAGE_KEY = 'kundalik_entries';
+
+function fmtDate(ts){
+  const d = new Date(ts);
+  return d.toLocaleDateString('uz-UZ', {day:'numeric', month:'long', year:'numeric'}) + ' · ' + d.toLocaleTimeString('uz-UZ', {hour:'2-digit', minute:'2-digit'});
+}
+
+function getEntries(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch(e) { return []; }
+}
+
+function setEntries(list){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+}
+
+function render(){
+  const items = getEntries().sort((a,b) => b.ts - a.ts);
+  if (items.length === 0) {
+    entriesDiv.innerHTML = '<div class="empty">Hali yozuvlar yo\'q.</div>';
+    return;
+  }
+  entriesDiv.innerHTML = '';
+  items.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const dateEl = document.createElement('div');
+    dateEl.className = 'date';
+    dateEl.textContent = fmtDate(item.ts);
+
+    const textEl = document.createElement('div');
+    textEl.className = 'text';
+    textEl.textContent = item.text;
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'del';
+    delBtn.textContent = '✕';
+    delBtn.onclick = () => {
+      const remaining = getEntries().filter(e => e.ts !== item.ts);
+      setEntries(remaining);
+      render();
+    };
+
+    card.appendChild(dateEl);
+    card.appendChild(textEl);
+    card.appendChild(delBtn);
+    entriesDiv.appendChild(card);
+  });
+}
+
+saveBtn.onclick = () => {
+  const text = entryText.value.trim();
+  if (!text) { status.textContent = 'Iltimos, matn kiriting.'; return; }
+  const list = getEntries();
+  list.push({ text, ts: Date.now() });
+  setEntries(list);
+  entryText.value = '';
+  status.textContent = 'Saqlandi ✓';
+  render();
+  setTimeout(() => status.textContent = '', 2000);
+};
+
+render();
+</script>
+</body>
+</html>
