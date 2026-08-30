@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ombor jadvali</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: #1e1e1e;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    padding: 24px 12px;
+    color: #fff;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  h2 {
+    text-align: center;
+    margin: 0 0 6px;
+    font-size: 22px;
+    font-weight: 600;
+  }
+  .sub {
+    text-align: center;
+    color: #999;
+    font-size: 13px;
+    margin-bottom: 18px;
+  }
+  .tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+  .tabBtn {
+    flex: 1;
+    padding: 9px 4px;
+    font-size: 13px;
+    border-radius: 10px;
+    border: 1px solid #3a3a3a;
+    background: #2a2a2a;
+    color: #fff;
+    cursor: pointer;
+  }
+  .tabBtn.active { background: #3b7dd8; border-color: #3b7dd8; }
+  .pane { display: none; }
+  .pane.active { display: block; }
+  .summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .card {
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 12px;
+    padding: 14px;
+  }
+  .card .lbl { font-size: 12px; color: #999; margin-bottom: 4px; }
+  .card .val { font-size: 20px; font-weight: 600; }
+  .toolbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  input, select {
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid #3a3a3a;
+    background: #2a2a2a;
+    color: #fff;
+    font-size: 14px;
+  }
+  input#search { flex: 1; }
+  #resetBtn {
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid #3a3a3a;
+    background: #2a2a2a;
+    color: #f0997b;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .catTitle {
+    font-size: 14px;
+    font-weight: 600;
+    color: #f4a940;
+    margin: 18px 0 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #3a3a3a;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 6px;
+  }
+  th, td {
+    padding: 8px 6px;
+    text-align: left;
+    font-size: 13px;
+    border-bottom: 1px solid #2f2f2f;
+    vertical-align: middle;
+  }
+  th { color: #999; font-weight: 500; font-size: 12px; }
+  td.num { text-align: right; }
+  .qtyCtrl { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+  .qtyCtrl button {
+    width: 24px; height: 24px; padding: 0; font-size: 14px; line-height: 1;
+    border-radius: 6px; border: 1px solid #3a3a3a; background: #333; color: #fff; cursor: pointer;
+  }
+  .qtyVal { min-width: 26px; text-align: center; font-weight: 600; cursor: pointer; }
+  .qtyEditInput {
+    width: 46px;
+    text-align: center;
+    padding: 3px 2px;
+    border-radius: 6px;
+    border: 1px solid #3b7dd8;
+    background: #1e1e1e;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .totalRow td { font-weight: 600; color: #7ec25a; }
+
+  .msWrap { position: relative; }
+  .voiceBtn {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid #3a3a3a;
+    background: #2a2a2a;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .voiceBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .voiceBtn.listening {
+    background: #e24b4a;
+    border-color: #e24b4a;
+    animation: voicePulse 1s infinite;
+  }
+  @keyframes voicePulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.55; }
+    100% { opacity: 1; }
+  }
+  .voiceHint {
+    font-size: 12px;
+    color: #999;
+    text-align: center;
+    margin: -4px 0 12px;
+  }
+  .msInput {
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid #3a3a3a;
+    background: #2a2a2a;
+    color: #999;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .msInput.hasSel { color: #fff; }
+  .msDropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 10px;
+    z-index: 20;
+    max-height: 260px;
+    overflow-y: auto;
+    padding: 8px;
+  }
+  .msDropdown.open { display: block; }
+  .msDropdown input#msSearch {
+    width: 100%;
+    margin-bottom: 6px;
+  }
+  .msOption {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 6px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .msOption:hover { background: #333; }
+  .msOption input[type="checkbox"] { width: 16px; height: 16px; }
+  .msOption .stok { color: #999; font-size: 12px; margin-left: auto; }
+  .selectedItemsList { margin-bottom: 10px; }
+  .selItemRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 10px;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    font-size: 13px;
+  }
+  .selItemRow .selName { flex: 1; }
+  .selItemRow input.selQty {
+    width: 64px;
+    padding: 6px 8px;
+    font-size: 13px;
+  }
+  .selItemRow .selRemove {
+    background: none;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0 4px;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .form-grid select, .form-grid input { width: 100%; }
+  .full { grid-column: span 2; }
+  #addBtn {
+    width: 100%;
+    padding: 11px;
+    border-radius: 10px;
+    border: none;
+    background: linear-gradient(180deg, #f4a940, #d4870f);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 8px;
+  }
+  .errMsg { font-size: 12px; color: #e24b4a; margin-bottom: 10px; min-height: 14px; }
+  .dayGroup {
+    margin-top: 16px;
+  }
+  .dayHead {
+    font-size: 13px;
+    font-weight: 600;
+    color: #9fd89f;
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .logRow {
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 10px;
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+  }
+  .logRow .delBtn {
+    background: none;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0 4px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h2>Ombor jadvali</h2>
+  <div class="sub">Salfetka ombori — tovarlar, soni, qiymati va kunlik berilganlar</div>
+
+  <div class="tabs">
+    <button class="tabBtn active" data-tab="sklad">Sklad</button>
+    <button class="tabBtn" data-tab="berish">Kunlik berish</button>
+  </div>
+
+  <div id="pane-sklad" class="pane active">
+    <div class="summary">
+      <div class="card">
+        <div class="lbl">Jami dona</div>
+        <div class="val" id="sumQty">-</div>
+      </div>
+      <div class="card">
+        <div class="lbl">Umumiy qiymat</div>
+        <div class="val" id="sumVal">-</div>
+      </div>
+    </div>
+    <div class="toolbar">
+      <input id="search" placeholder="Tovar qidirish..." />
+      <button id="resetBtn">Boshlang'ichga qaytarish</button>
+    </div>
+    <div id="tables"></div>
+  </div>
+
+  <div id="pane-berish" class="pane">
+    <button type="button" id="voiceBtn">&#127908; Ovozli kiritish</button>
+    <div class="voiceHint">Masalan: "Davra 10 ta" yoki "Qizil polvon 5 dona"</div>
+    <div class="msWrap full" id="msWrap">
+      <div class="msInput" id="msInput"><span id="msInputText">Tovarlarni tanlang (bir nechtasini belgilash mumkin)</span><span>&#9662;</span></div>
+      <div class="msDropdown" id="msDropdown">
+        <input id="msSearch" placeholder="Qidirish..." />
+        <div id="msList"></div>
+      </div>
+    </div>
+    <div class="selectedItemsList" id="selectedItemsList"></div>
+    <div class="form-grid">
+      <input id="b_kimga" placeholder="Kimga topshirildi" />
+      <input id="b_sana" type="date" />
+    </div>
+    <button id="addBtn">Qo'shish</button>
+    <div class="errMsg" id="b_err"></div>
+
+    <div class="summary">
+      <div class="card">
+        <div class="lbl">Bugun berilgan</div>
+        <div class="val" id="todayQty">0</div>
+      </div>
+      <div class="card">
+        <div class="lbl">Shu oy berilgan</div>
+        <div class="val" id="monthQty">0</div>
+      </div>
+    </div>
+
+    <div id="logList"></div>
+  </div>
+</div>
+
+<script>
+const DEFAULT_DATA = [{"kategoriya": "Oddiy", "nomi": "Davra", "rang": "-", "miqdor": 149, "narx": 120000}, {"kategoriya": "Oddiy", "nomi": "Zet", "rang": "-", "miqdor": 123, "narx": 120000}, {"kategoriya": "Polvon", "nomi": "Polvon", "rang": "Oq", "miqdor": 31, "narx": 40000}, {"kategoriya": "Polvon", "nomi": "Polvon", "rang": "Qizil", "miqdor": 26, "narx": 40000}, {"kategoriya": "Polvon", "nomi": "Polvon", "rang": "Sariq", "miqdor": 6, "narx": 40000}, {"kategoriya": "Rangli brendli", "nomi": "O'rda choyxonasi", "rang": "Yashil", "miqdor": 4, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Novda", "rang": "Yashil", "miqdor": 3, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Aul", "rang": "Sariq", "miqdor": 10, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Uchtepa plaza", "rang": "Sariq", "miqdor": 10, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Ada jo'ja", "rang": "Sariq", "miqdor": 10, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Esse", "rang": "Sariq", "miqdor": 10, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Pitak", "rang": "Sariq", "miqdor": 10, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Capri", "rang": "Sariq", "miqdor": 41, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Smile Burger", "rang": "Sariq", "miqdor": 37, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Enjoy Burger", "rang": "Sariq", "miqdor": 30, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Baku", "rang": "Sariq", "miqdor": 35, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "One Burger", "rang": "Qizil", "miqdor": 11, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "King Burger", "rang": "Qizil", "miqdor": 30, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "King Milliy", "rang": "Qizil", "miqdor": 20, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "ABC", "rang": "Qizil", "miqdor": 6, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Humo", "rang": "Qizil", "miqdor": 9, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Gusto", "rang": "Qizil", "miqdor": 12, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Uchtepa", "rang": "Qizil", "miqdor": 5, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Centre Lavash", "rang": "Qizil", "miqdor": 14, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Yoqimli Ishtaxa", "rang": "Qizil", "miqdor": 7, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Sultan Food", "rang": "Qizil", "miqdor": 10, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "JazBiz", "rang": "Qora", "miqdor": 35, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Pentagon", "rang": "Qora", "miqdor": 13, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Best Cafe", "rang": "Qora", "miqdor": 4, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Shaq", "rang": "Qora", "miqdor": 1, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Somsapay Burger", "rang": "Qora", "miqdor": 8, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Magnat", "rang": "Qora", "miqdor": 3, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Esppeso", "rang": "Qora", "miqdor": 3, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Yagona", "rang": "Qora", "miqdor": 5, "narx": 50000}];
+const STORAGE_KEY = 'ombor_data_v1';
+const LOG_KEY = 'ombor_log_v1';
+
+function loadData(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return JSON.parse(JSON.stringify(DEFAULT_DATA));
+}
+function saveData(data){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+function loadLog(){
+  try {
+    const raw = localStorage.getItem(LOG_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return [];
+}
+function saveLog(log){ localStorage.setItem(LOG_KEY, JSON.stringify(log)); }
+
+let DATA = loadData();
+let __renamedXorika = false;
+DATA.forEach(it => { if (it.nomi === 'Xorika'){ it.nomi = 'Davra'; __renamedXorika = true; } });
+if (__renamedXorika) saveData(DATA);
+let LOG = loadLog();
+let __renamedLog = false;
+LOG.forEach(l => { if (l.tovar && l.tovar.indexOf('Xorika') === 0){ l.tovar = 'Davra' + l.tovar.slice('Xorika'.length); __renamedLog = true; } });
+if (__renamedLog) saveLog(LOG);
+
+function fmt(n){ return Math.round(n).toLocaleString('uz-UZ'); }
+
+document.querySelectorAll('.tabBtn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.tabBtn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('pane-' + btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab === 'berish') { fillSelect(); renderLog(); }
+    else { render(document.getElementById('search').value.toLowerCase()); }
+  };
+});
+
+function render(filter){
+  const tablesEl = document.getElementById('tables');
+  tablesEl.innerHTML = '';
+
+  const grouped = {};
+  DATA.forEach((it, idx) => {
+    const key = it.kategoriya + (it.rang && it.rang !== '-' ? ' - ' + it.rang : '');
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push({...it, _idx: idx});
+  });
+
+  updateSummary();
+
+  Object.entries(grouped).forEach(([cat, items]) => {
+    const filtered = filter ? items.filter(it => it.nomi.toLowerCase().includes(filter)) : items;
+    if (filtered.length === 0) return;
+
+    const title = document.createElement('div');
+    title.className = 'catTitle';
+    title.textContent = cat;
+    tablesEl.appendChild(title);
+
+    const table = document.createElement('table');
+    let catQty = 0, catVal = 0;
+    filtered.forEach(it => { catQty += it.miqdor; catVal += it.miqdor * it.narx; });
+
+    const thead = document.createElement('tr');
+    thead.innerHTML = '<th>Nomi</th><th class="num">Narxi</th><th class="num">Soni</th><th class="num">Summa</th>';
+    table.appendChild(thead);
+
+    filtered.forEach(it => {
+      const val = it.miqdor * it.narx;
+      const tr = document.createElement('tr');
+
+      const tdName = document.createElement('td');
+      tdName.textContent = it.nomi;
+
+      const tdNarx = document.createElement('td');
+      tdNarx.className = 'num';
+      tdNarx.textContent = fmt(it.narx);
+
+      const tdQty = document.createElement('td');
+      tdQty.className = 'num';
+      const ctrl = document.createElement('div');
+      ctrl.className = 'qtyCtrl';
+      const minusBtn = document.createElement('button');
+      minusBtn.textContent = '-';
+      const qtySpan = document.createElement('span');
+      qtySpan.className = 'qtyVal';
+      qtySpan.textContent = it.miqdor;
+      const plusBtn = document.createElement('button');
+      plusBtn.textContent = '+';
+
+      const tdSum = document.createElement('td');
+      tdSum.className = 'num';
+      tdSum.textContent = fmt(val);
+
+      minusBtn.onclick = () => {
+        if (DATA[it._idx].miqdor <= 0) return;
+        DATA[it._idx].miqdor -= 1;
+        saveData(DATA);
+        qtySpan.textContent = DATA[it._idx].miqdor;
+        tdSum.textContent = fmt(DATA[it._idx].miqdor * DATA[it._idx].narx);
+        updateSummary();
+      };
+      plusBtn.onclick = () => {
+        DATA[it._idx].miqdor += 1;
+        saveData(DATA);
+        qtySpan.textContent = DATA[it._idx].miqdor;
+        tdSum.textContent = fmt(DATA[it._idx].miqdor * DATA[it._idx].narx);
+        updateSummary();
+      };
+      qtySpan.onclick = () => {
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.className = 'qtyEditInput';
+        input.value = DATA[it._idx].miqdor;
+        qtySpan.replaceWith(input);
+        input.focus();
+        input.select();
+        let done = false;
+        const commit = () => {
+          if (done) return;
+          done = true;
+          let v = parseInt(input.value, 10);
+          if (isNaN(v) || v < 0) v = DATA[it._idx].miqdor;
+          DATA[it._idx].miqdor = v;
+          saveData(DATA);
+          qtySpan.textContent = v;
+          tdSum.textContent = fmt(v * DATA[it._idx].narx);
+          updateSummary();
+          input.replaceWith(qtySpan);
+        };
+        input.addEventListener('blur', commit);
+        input.addEventListener('keydown', e => {
+          if (e.key === 'Enter') input.blur();
+          if (e.key === 'Escape') { done = true; input.replaceWith(qtySpan); }
+        });
+      };
+
+      ctrl.appendChild(minusBtn);
+      ctrl.appendChild(qtySpan);
+      ctrl.appendChild(plusBtn);
+      tdQty.appendChild(ctrl);
+
+      tr.appendChild(tdName);
+      tr.appendChild(tdNarx);
+      tr.appendChild(tdQty);
+      tr.appendChild(tdSum);
+      table.appendChild(tr);
+    });
+
+    const totalTr = document.createElement('tr');
+    totalTr.className = 'totalRow';
+    totalTr.innerHTML = '<td>Jami</td><td></td><td class="num">'+catQty+'</td><td class="num">'+fmt(catVal)+'</td>';
+    table.appendChild(totalTr);
+
+    tablesEl.appendChild(table);
+  });
+
+  if (tablesEl.innerHTML === ''){
+    tablesEl.innerHTML = '<div style="color:#999;font-size:13px;">Hech narsa topilmadi.</div>';
+  }
+}
+
+function updateSummary(){
+  let grandQty = 0, grandVal = 0;
+  DATA.forEach(it => { grandQty += it.miqdor; grandVal += it.miqdor * it.narx; });
+  document.getElementById('sumQty').textContent = fmt(grandQty);
+  document.getElementById('sumVal').textContent = fmt(grandVal) + " so'm";
+}
+
+document.getElementById('search').addEventListener('input', e => { render(e.target.value.toLowerCase()); });
+document.getElementById('resetBtn').addEventListener('click', () => {
+  DATA = JSON.parse(JSON.stringify(DEFAULT_DATA));
+  saveData(DATA);
+  render(document.getElementById('search').value.toLowerCase());
+});
+
+let selectedIds = [];
+
+function itemLabel(it){
+  return it.nomi + (it.rang && it.rang !== '-' ? ' (' + it.rang + ')' : '');
+}
+
+function fillSelect(){
+  selectedIds = selectedIds.filter(idx => DATA[idx]);
+  const dateInput = document.getElementById('b_sana');
+  if (!dateInput.value){
+    const today = new Date();
+    dateInput.value = today.toISOString().slice(0,10);
+  }
+  renderMsList();
+  renderSelectedItems();
+}
+
+function renderMsList(){
+  const listEl = document.getElementById('msList');
+  const filter = (document.getElementById('msSearch').value || '').toLowerCase();
+  listEl.innerHTML = '';
+  DATA.forEach((it, idx) => {
+    const label = itemLabel(it);
+    if (filter && !label.toLowerCase().includes(filter)) return;
+    const row = document.createElement('label');
+    row.className = 'msOption';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = selectedIds.includes(idx);
+    cb.onchange = () => {
+      if (cb.checked){
+        if (!selectedIds.includes(idx)) selectedIds.push(idx);
+      } else {
+        selectedIds = selectedIds.filter(i => i !== idx);
+      }
+      renderSelectedItems();
+      updateMsInputLabel();
+    };
+    const span = document.createElement('span');
+    span.textContent = label;
+    const stok = document.createElement('span');
+    stok.className = 'stok';
+    stok.textContent = 'qoldiq: ' + it.miqdor;
+    row.appendChild(cb);
+    row.appendChild(span);
+    row.appendChild(stok);
+    listEl.appendChild(row);
+  });
+  if (!listEl.innerHTML){
+    listEl.innerHTML = '<div style="color:#999;font-size:13px;padding:6px;">Hech narsa topilmadi.</div>';
+  }
+}
+
+function updateMsInputLabel(){
+  const textEl = document.getElementById('msInputText');
+  const inputEl = document.getElementById('msInput');
+  if (selectedIds.length === 0){
+    textEl.textContent = 'Tovarlarni tanlang (bir nechtasini belgilash mumkin)';
+    inputEl.classList.remove('hasSel');
+  } else {
+    textEl.textContent = selectedIds.length + ' ta tovar tanlandi';
+    inputEl.classList.add('hasSel');
+  }
+}
+
+function renderSelectedItems(){
+  const wrap = document.getElementById('selectedItemsList');
+  const prevQty = {};
+  wrap.querySelectorAll('.selItemRow').forEach(row => {
+    prevQty[row.dataset.idx] = row.querySelector('.selQty').value;
+  });
+  wrap.innerHTML = '';
+  selectedIds.forEach(idx => {
+    const it = DATA[idx];
+    const row = document.createElement('div');
+    row.className = 'selItemRow';
+    row.dataset.idx = idx;
+
+    const name = document.createElement('span');
+    name.className = 'selName';
+    name.textContent = itemLabel(it) + ' (qoldiq: ' + it.miqdor + ')';
+
+    const qty = document.createElement('input');
+    qty.type = 'number';
+    qty.className = 'selQty';
+    qty.placeholder = 'Soni';
+    qty.min = '1';
+    if (prevQty[idx] !== undefined) qty.value = prevQty[idx];
+
+    const rm = document.createElement('button');
+    rm.className = 'selRemove';
+    rm.type = 'button';
+    rm.innerHTML = '&times;';
+    rm.onclick = () => {
+      selectedIds = selectedIds.filter(i => i !== idx);
+      renderSelectedItems();
+      renderMsList();
+      updateMsInputLabel();
+    };
+
+    row.appendChild(name);
+    row.appendChild(qty);
+    row.appendChild(rm);
+    wrap.appendChild(row);
+  });
+  updateMsInputLabel();
+}
+
+document.getElementById('msInput').addEventListener('click', () => {
+  const dd = document.getElementById('msDropdown');
+  dd.classList.toggle('open');
+  if (dd.classList.contains('open')){
+    document.getElementById('msSearch').value = '';
+    renderMsList();
+    document.getElementById('msSearch').focus();
+  }
+});
+document.getElementById('msSearch').addEventListener('input', renderMsList);
+document.getElementById('msSearch').addEventListener('click', e => e.stopPropagation());
+document.addEventListener('click', e => {
+  const wrap = document.getElementById('msWrap');
+  if (!wrap.contains(e.target)){
+    document.getElementById('msDropdown').classList.remove('open');
+  }
+});
+
+function itemMatchKeywords(it){
+  const words = it.nomi.toLowerCase().split(/\s+/).filter(Boolean);
+  if (it.rang && it.rang !== '-') it.rang.toLowerCase().split(/\s+/).forEach(w => words.push(w));
+  return words;
+}
+
+function normalizeVoiceText(s){
+  return s.toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+const UZ_NUMBER_WORDS = {
+  'nol': 0, 'bir': 1, 'bitta': 1, 'ikki': 2, 'ikkita': 2, 'uch': 3, 'uchta': 3,
+  'tort': 4, 'to\'rt': 4, 'tortta': 4, 'to\'rtta': 4, 'besh': 5, 'beshta': 5,
+  'olti': 6, 'oltita': 6, 'yetti': 7, 'yettita': 7, 'sakkiz': 8, 'sakkizta': 8,
+  'toqqiz': 9, 'to\'qqiz': 9, 'toqqizta': 9, 'to\'qqizta': 9,
+  'on': 10, "o'n": 10, 'onta': 10, "o'nta": 10,
+  'yigirma': 20, 'ottiz': 30, "o'ttiz": 30, 'qirq': 40, 'ellik': 50,
+  'oltmish': 60, 'yetmish': 70, 'sakson': 80, 'toqson': 90, "to'qson": 90,
+  'yuz': 100
+};
+
+function wordsToNumber(text){
+  const norm = normalizeVoiceText(text);
+  const tokens = norm.split(' ');
+  let total = null;
+  for (let i = 0; i < tokens.length; i++){
+    const tens = UZ_NUMBER_WORDS[tokens[i]];
+    if (tens === undefined) continue;
+    if (tens >= 20 && tens <= 90 && tens % 10 === 0){
+      const next = UZ_NUMBER_WORDS[tokens[i+1]];
+      if (next !== undefined && next < 10){
+        total = tens + next;
+        break;
+      }
+    }
+    total = tens;
+    break;
+  }
+  return total;
+}
+
+function extractQtyFromText(text){
+  const m = text.match(/\d+/);
+  if (m) return parseInt(m[0], 10);
+  return wordsToNumber(text);
+}
+
+function findBestItemMatch(text){
+  const norm = normalizeVoiceText(text);
+  let bestIdx = null, bestScore = 0;
+  DATA.forEach((it, idx) => {
+    let score = 0;
+    itemMatchKeywords(it).forEach(k => {
+      if (k.length >= 2 && norm.includes(k)) score += k.length;
+    });
+    if (score > bestScore){
+      bestScore = score;
+      bestIdx = idx;
+    }
+  });
+  return bestScore > 0 ? { idx: bestIdx, score: bestScore } : null;
+}
+
+function splitVoiceSegments(transcript){
+  return transcript
+    .split(/,|;| va | hamda | yana | keyin |\bva\b/gi)
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
+function handleVoiceResult(transcript){
+  const err = document.getElementById('b_err');
+  const segments = splitVoiceSegments(transcript);
+  const matched = [];
+  const unmatchedSegments = [];
+
+  segments.forEach(seg => {
+    const found = findBestItemMatch(seg);
+    if (!found){
+      unmatchedSegments.push(seg);
+      return;
+    }
+    const qty = extractQtyFromText(seg);
+    matched.push({ idx: found.idx, qty });
+  });
+
+  if (matched.length === 0){
+    err.style.color = '#e24b4a';
+    err.textContent = 'Tovar aniqlanmadi: "' + transcript + '". Yana urinib ko\'ring yoki qo\'lda tanlang.';
+    return;
+  }
+
+  matched.forEach(({ idx }) => {
+    if (!selectedIds.includes(idx)) selectedIds.push(idx);
+  });
+  renderMsList();
+  renderSelectedItems();
+  updateMsInputLabel();
+
+  matched.forEach(({ idx, qty }) => {
+    if (qty !== null){
+      const row = document.querySelector('.selItemRow[data-idx="' + idx + '"]');
+      if (row) row.querySelector('.selQty').value = qty;
+    }
+  });
+
+  const summary = matched.map(({ idx, qty }) =>
+    itemLabel(DATA[idx]) + (qty !== null ? ' (' + qty + ' ta)' : ' (sonini kiriting)')
+  ).join(', ');
+
+  err.style.color = unmatchedSegments.length ? '#f4a940' : '#7ec25a';
+  err.textContent = 'Aniqlandi: ' + summary + '.' +
+    (unmatchedSegments.length ? ' Tushunilmadi: "' + unmatchedSegments.join(', ') + '".' : '');
+}
+
+(function setupVoiceInput(){
+  const voiceBtn = document.getElementById('voiceBtn');
+  const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!SpeechRecognitionCtor){
+    voiceBtn.disabled = true;
+    voiceBtn.textContent = 'Ovozli kiritish qo\'llab-quvvatlanmaydi';
+    return;
+  }
+
+  const langOptions = ['uz-UZ', 'ru-RU', 'tr-TR', 'en-US'];
+  let langIdx = 0;
+
+  const recognition = new SpeechRecognitionCtor();
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  let listening = false;
+  let retryingLang = false;
+
+  function startWithLang(i){
+    recognition.lang = langOptions[i];
+    try { recognition.start(); } catch(e) {}
+  }
+
+  voiceBtn.addEventListener('click', () => {
+    if (listening){ recognition.stop(); return; }
+    langIdx = 0;
+    retryingLang = false;
+    startWithLang(langIdx);
+  });
+
+  recognition.onstart = () => {
+    listening = true;
+    voiceBtn.classList.add('listening');
+    voiceBtn.innerHTML = '&#127911; Tinglanmoqda...';
+  };
+  recognition.onend = () => {
+    listening = false;
+    voiceBtn.classList.remove('listening');
+    voiceBtn.innerHTML = '&#127908; Ovozli kiritish';
+  };
+  recognition.onerror = (e) => {
+    listening = false;
+    voiceBtn.classList.remove('listening');
+    voiceBtn.innerHTML = '&#127908; Ovozli kiritish';
+    const err = document.getElementById('b_err');
+    err.style.color = '#e24b4a';
+
+    if ((e.error === 'language-not-supported' || e.error === 'language-not-available') && langIdx < langOptions.length - 1){
+      langIdx += 1;
+      retryingLang = true;
+      startWithLang(langIdx);
+      return;
+    }
+
+    let msg;
+    switch(e.error){
+      case 'not-allowed':
+      case 'service-not-allowed':
+        msg = 'Mikrofonga ruxsat berilmagan. Brauzer manzil satridagi qulf/sozlamalar belgisidan mikrofonga ruxsat bering.';
+        break;
+      case 'no-speech':
+        msg = 'Ovoz eshitilmadi. Tugmani bosib, aniqroq va balandroq gapirib ko\'ring.';
+        break;
+      case 'audio-capture':
+        msg = 'Mikrofon topilmadi. Qurilmangizda mikrofon borligini tekshiring.';
+        break;
+      case 'network':
+        msg = 'Internet aloqasi kerak — ovozni aniqlash onlayn ishlaydi. Internetni tekshiring.';
+        break;
+      case 'aborted':
+        msg = '';
+        break;
+      default:
+        msg = 'Ovozni aniqlab bo\'lmadi (xato: ' + e.error + '). Qayta urinib ko\'ring.';
+    }
+    if (msg) err.textContent = msg;
+  };
+  recognition.onresult = (e) => {
+    retryingLang = false;
+    const transcript = e.results[0][0].transcript;
+    handleVoiceResult(transcript);
+  };
+})();
+
+document.getElementById('addBtn').onclick = () => {
+  const kimga = document.getElementById('b_kimga').value.trim();
+  const sana = document.getElementById('b_sana').value;
+  const err = document.getElementById('b_err');
+
+  if (selectedIds.length === 0 || !sana){
+    err.style.color = '#e24b4a';
+    err.textContent = 'Kamida bitta tovar va sanani to\'g\'ri kiriting.';
+    return;
+  }
+
+  const rows = Array.from(document.getElementById('selectedItemsList').querySelectorAll('.selItemRow'));
+  const entries = [];
+  for (const row of rows){
+    const idx = row.dataset.idx;
+    const item = DATA[idx];
+    const miqdor = parseFloat(row.querySelector('.selQty').value);
+    if (isNaN(miqdor) || miqdor <= 0){
+      err.style.color = '#e24b4a';
+      err.textContent = itemLabel(item) + ' uchun miqdorni to\'g\'ri kiriting.';
+      return;
+    }
+    if (miqdor > item.miqdor){
+      err.style.color = '#e24b4a';
+      err.textContent = itemLabel(item) + ' uchun skladda yetarli miqdor yo\'q (qoldiq: ' + item.miqdor + ').';
+      return;
+    }
+    entries.push({ idx, item, miqdor });
+  }
+
+  err.style.color = '';
+  err.textContent = '';
+
+  entries.forEach(({ idx, item, miqdor }) => {
+    DATA[idx].miqdor -= miqdor;
+    LOG.push({
+      id: Date.now() + Math.floor(Math.random()*1000),
+      tovar: itemLabel(item),
+      miqdor,
+      narx: item.narx,
+      kimga: kimga || '-',
+      sana
+    });
+  });
+  saveData(DATA);
+  saveLog(LOG);
+
+  selectedIds = [];
+  document.getElementById('b_kimga').value = '';
+
+  fillSelect();
+  renderLog();
+};
+
+function renderLog(){
+  const listEl = document.getElementById('logList');
+  listEl.innerHTML = '';
+
+  const today = new Date().toISOString().slice(0,10);
+  const curMonth = today.slice(0,7);
+
+  let todayQty = 0, monthQty = 0;
+  LOG.forEach(l => {
+    if (l.sana === today) todayQty += l.miqdor;
+    if (l.sana && l.sana.slice(0,7) === curMonth) monthQty += l.miqdor;
+  });
+  document.getElementById('todayQty').textContent = fmt(todayQty);
+  document.getElementById('monthQty').textContent = fmt(monthQty);
+
+  if (LOG.length === 0){
+    listEl.innerHTML = '<div style="color:#999;font-size:13px;">Hali yozuv yo\'q.</div>';
+    return;
+  }
+
+  const byDate = {};
+  LOG.forEach(l => {
+    if (!byDate[l.sana]) byDate[l.sana] = [];
+    byDate[l.sana].push(l);
+  });
+
+  Object.keys(byDate).sort().reverse().forEach(date => {
+    const entries = byDate[date];
+    let dayTotal = 0;
+    entries.forEach(e => dayTotal += e.miqdor * e.narx);
+
+    const group = document.createElement('div');
+    group.className = 'dayGroup';
+
+    const head = document.createElement('div');
+    head.className = 'dayHead';
+    head.innerHTML = '<span>' + date + '</span><span>' + fmt(dayTotal) + " so'm</span>";
+    group.appendChild(head);
+
+    entries.forEach(e => {
+      const row = document.createElement('div');
+      row.className = 'logRow';
+      row.innerHTML = '<span>' + e.tovar + ' x' + e.miqdor + ' &rarr; ' + e.kimga + '</span>' +
+        '<span style="display:flex;align-items:center;gap:8px;"><span>' + fmt(e.miqdor * e.narx) + " so'm</span><button class=\"delBtn\" data-id=\"" + e.id + "\">&times;</button></span>";
+      group.appendChild(row);
+    });
+
+    listEl.appendChild(group);
+  });
+
+  listEl.querySelectorAll('.delBtn').forEach(btn => {
+    btn.onclick = () => {
+      const id = parseInt(btn.dataset.id);
+      const entry = LOG.find(l => l.id === id);
+      if (entry){
+        const dataIdx = DATA.findIndex(it => (it.nomi + (it.rang && it.rang !== '-' ? ' (' + it.rang + ')' : '')) === entry.tovar);
+        if (dataIdx >= 0){
+          DATA[dataIdx].miqdor += entry.miqdor;
+          saveData(DATA);
+        }
+      }
+      LOG = LOG.filter(l => l.id !== id);
+      saveLog(LOG);
+      fillSelect();
+      renderLog();
+    };
+  });
+}
+
+render('');
+</script>
+</body>
+</html>
