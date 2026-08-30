@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ombor jadvali</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: #1e1e1e;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    padding: 24px 12px;
+    color: #fff;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  h2 {
+    text-align: center;
+    margin: 0 0 6px;
+    font-size: 22px;
+    font-weight: 600;
+  }
+  .sub {
+    text-align: center;
+    color: #999;
+    font-size: 13px;
+    margin-bottom: 18px;
+  }
+  .tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+  .tabBtn {
+    flex: 1;
+    padding: 9px 4px;
+    font-size: 13px;
+    border-radius: 10px;
+    border: 1px solid #3a3a3a;
+    background: #2a2a2a;
+    color: #fff;
+    cursor: pointer;
+  }
+  .tabBtn.active { background: #3b7dd8; border-color: #3b7dd8; }
+  .pane { display: none; }
+  .pane.active { display: block; }
+  .summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .card {
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 12px;
+    padding: 14px;
+  }
+  .card .lbl { font-size: 12px; color: #999; margin-bottom: 4px; }
+  .card .val { font-size: 20px; font-weight: 600; }
+  .toolbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  input, select {
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid #3a3a3a;
+    background: #2a2a2a;
+    color: #fff;
+    font-size: 14px;
+  }
+  input#search { flex: 1; }
+  #resetBtn {
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid #3a3a3a;
+    background: #2a2a2a;
+    color: #f0997b;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .catTitle {
+    font-size: 14px;
+    font-weight: 600;
+    color: #f4a940;
+    margin: 18px 0 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #3a3a3a;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 6px;
+  }
+  th, td {
+    padding: 8px 6px;
+    text-align: left;
+    font-size: 13px;
+    border-bottom: 1px solid #2f2f2f;
+    vertical-align: middle;
+  }
+  th { color: #999; font-weight: 500; font-size: 12px; }
+  td.num { text-align: right; }
+  .qtyCtrl { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+  .qtyCtrl button {
+    width: 24px; height: 24px; padding: 0; font-size: 14px; line-height: 1;
+    border-radius: 6px; border: 1px solid #3a3a3a; background: #333; color: #fff; cursor: pointer;
+  }
+  .qtyVal { min-width: 26px; text-align: center; font-weight: 600; }
+  .totalRow td { font-weight: 600; color: #7ec25a; }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .form-grid select, .form-grid input { width: 100%; }
+  .full { grid-column: span 2; }
+  #addBtn {
+    width: 100%;
+    padding: 11px;
+    border-radius: 10px;
+    border: none;
+    background: linear-gradient(180deg, #f4a940, #d4870f);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 8px;
+  }
+  .errMsg { font-size: 12px; color: #e24b4a; margin-bottom: 10px; min-height: 14px; }
+  .dayGroup {
+    margin-top: 16px;
+  }
+  .dayHead {
+    font-size: 13px;
+    font-weight: 600;
+    color: #9fd89f;
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .logRow {
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 10px;
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+  }
+  .logRow .delBtn {
+    background: none;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0 4px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h2>Ombor jadvali</h2>
+  <div class="sub">Salfetka ombori — tovarlar, soni, qiymati va kunlik berilganlar</div>
+
+  <div class="tabs">
+    <button class="tabBtn active" data-tab="sklad">Sklad</button>
+    <button class="tabBtn" data-tab="berish">Kunlik berish</button>
+  </div>
+
+  <div id="pane-sklad" class="pane active">
+    <div class="summary">
+      <div class="card">
+        <div class="lbl">Jami dona</div>
+        <div class="val" id="sumQty">-</div>
+      </div>
+      <div class="card">
+        <div class="lbl">Umumiy qiymat</div>
+        <div class="val" id="sumVal">-</div>
+      </div>
+    </div>
+    <div class="toolbar">
+      <input id="search" placeholder="Tovar qidirish..." />
+      <button id="resetBtn">Boshlang'ichga qaytarish</button>
+    </div>
+    <div id="tables"></div>
+  </div>
+
+  <div id="pane-berish" class="pane">
+    <div class="form-grid">
+      <select id="b_tovar" class="full"></select>
+      <input id="b_miqdor" type="number" placeholder="Nechta berildi" />
+      <input id="b_kimga" placeholder="Kimga topshirildi" />
+      <input id="b_sana" type="date" class="full" />
+    </div>
+    <button id="addBtn">Qo'shish</button>
+    <div class="errMsg" id="b_err"></div>
+
+    <div class="summary">
+      <div class="card">
+        <div class="lbl">Bugun berilgan</div>
+        <div class="val" id="todayQty">0</div>
+      </div>
+      <div class="card">
+        <div class="lbl">Shu oy berilgan</div>
+        <div class="val" id="monthQty">0</div>
+      </div>
+    </div>
+
+    <div id="logList"></div>
+  </div>
+</div>
+
+<script>
+const DEFAULT_DATA = [{"kategoriya": "Oddiy", "nomi": "Xorika", "rang": "-", "miqdor": 149, "narx": 120000}, {"kategoriya": "Oddiy", "nomi": "Zet", "rang": "-", "miqdor": 123, "narx": 120000}, {"kategoriya": "Polvon", "nomi": "Polvon", "rang": "Oq", "miqdor": 31, "narx": 40000}, {"kategoriya": "Polvon", "nomi": "Polvon", "rang": "Qizil", "miqdor": 26, "narx": 40000}, {"kategoriya": "Polvon", "nomi": "Polvon", "rang": "Sariq", "miqdor": 6, "narx": 40000}, {"kategoriya": "Rangli brendli", "nomi": "O'rda choyxonasi", "rang": "Yashil", "miqdor": 4, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Novda", "rang": "Yashil", "miqdor": 3, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Aul", "rang": "Sariq", "miqdor": 10, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Uchtepa plaza", "rang": "Sariq", "miqdor": 10, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Ada jo'ja", "rang": "Sariq", "miqdor": 10, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Esse", "rang": "Sariq", "miqdor": 10, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Pitak", "rang": "Sariq", "miqdor": 10, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Capri", "rang": "Sariq", "miqdor": 41, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Smile Burger", "rang": "Sariq", "miqdor": 37, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Enjoy Burger", "rang": "Sariq", "miqdor": 30, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Baku", "rang": "Sariq", "miqdor": 35, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "One Burger", "rang": "Qizil", "miqdor": 11, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "King Burger", "rang": "Qizil", "miqdor": 30, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "King Milliy", "rang": "Qizil", "miqdor": 20, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "ABC", "rang": "Qizil", "miqdor": 6, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Humo", "rang": "Qizil", "miqdor": 9, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Gusto", "rang": "Qizil", "miqdor": 12, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Uchtepa", "rang": "Qizil", "miqdor": 5, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Centre Lavash", "rang": "Qizil", "miqdor": 14, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Yoqimli Ishtaxa", "rang": "Qizil", "miqdor": 7, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Sultan Food", "rang": "Qizil", "miqdor": 10, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "JazBiz", "rang": "Qora", "miqdor": 35, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Pentagon", "rang": "Qora", "miqdor": 13, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Best Cafe", "rang": "Qora", "miqdor": 4, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Shaq", "rang": "Qora", "miqdor": 1, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Somsapay Burger", "rang": "Qora", "miqdor": 8, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Magnat", "rang": "Qora", "miqdor": 3, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Esppeso", "rang": "Qora", "miqdor": 3, "narx": 50000}, {"kategoriya": "Rangli brendli", "nomi": "Yagona", "rang": "Qora", "miqdor": 5, "narx": 50000}];
+const STORAGE_KEY = 'ombor_data_v1';
+const LOG_KEY = 'ombor_log_v1';
+
+function loadData(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return JSON.parse(JSON.stringify(DEFAULT_DATA));
+}
+function saveData(data){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+function loadLog(){
+  try {
+    const raw = localStorage.getItem(LOG_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return [];
+}
+function saveLog(log){ localStorage.setItem(LOG_KEY, JSON.stringify(log)); }
+
+let DATA = loadData();
+let LOG = loadLog();
+
+function fmt(n){ return Math.round(n).toLocaleString('uz-UZ'); }
+
+document.querySelectorAll('.tabBtn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.tabBtn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('pane-' + btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab === 'berish') { fillSelect(); renderLog(); }
+  };
+});
+
+function render(filter){
+  const tablesEl = document.getElementById('tables');
+  tablesEl.innerHTML = '';
+
+  const grouped = {};
+  DATA.forEach((it, idx) => {
+    const key = it.kategoriya + (it.rang && it.rang !== '-' ? ' - ' + it.rang : '');
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push({...it, _idx: idx});
+  });
+
+  updateSummary();
+
+  Object.entries(grouped).forEach(([cat, items]) => {
+    const filtered = filter ? items.filter(it => it.nomi.toLowerCase().includes(filter)) : items;
+    if (filtered.length === 0) return;
+
+    const title = document.createElement('div');
+    title.className = 'catTitle';
+    title.textContent = cat;
+    tablesEl.appendChild(title);
+
+    const table = document.createElement('table');
+    let catQty = 0, catVal = 0;
+    filtered.forEach(it => { catQty += it.miqdor; catVal += it.miqdor * it.narx; });
+
+    const thead = document.createElement('tr');
+    thead.innerHTML = '<th>Nomi</th><th class="num">Narxi</th><th class="num">Soni</th><th class="num">Summa</th>';
+    table.appendChild(thead);
+
+    filtered.forEach(it => {
+      const val = it.miqdor * it.narx;
+      const tr = document.createElement('tr');
+
+      const tdName = document.createElement('td');
+      tdName.textContent = it.nomi;
+
+      const tdNarx = document.createElement('td');
+      tdNarx.className = 'num';
+      tdNarx.textContent = fmt(it.narx);
+
+      const tdQty = document.createElement('td');
+      tdQty.className = 'num';
+      const ctrl = document.createElement('div');
+      ctrl.className = 'qtyCtrl';
+      const minusBtn = document.createElement('button');
+      minusBtn.textContent = '-';
+      const qtySpan = document.createElement('span');
+      qtySpan.className = 'qtyVal';
+      qtySpan.textContent = it.miqdor;
+      const plusBtn = document.createElement('button');
+      plusBtn.textContent = '+';
+
+      const tdSum = document.createElement('td');
+      tdSum.className = 'num';
+      tdSum.textContent = fmt(val);
+
+      minusBtn.onclick = () => {
+        if (DATA[it._idx].miqdor <= 0) return;
+        DATA[it._idx].miqdor -= 1;
+        saveData(DATA);
+        qtySpan.textContent = DATA[it._idx].miqdor;
+        tdSum.textContent = fmt(DATA[it._idx].miqdor * DATA[it._idx].narx);
+        updateSummary();
+      };
+      plusBtn.onclick = () => {
+        DATA[it._idx].miqdor += 1;
+        saveData(DATA);
+        qtySpan.textContent = DATA[it._idx].miqdor;
+        tdSum.textContent = fmt(DATA[it._idx].miqdor * DATA[it._idx].narx);
+        updateSummary();
+      };
+
+      ctrl.appendChild(minusBtn);
+      ctrl.appendChild(qtySpan);
+      ctrl.appendChild(plusBtn);
+      tdQty.appendChild(ctrl);
+
+      tr.appendChild(tdName);
+      tr.appendChild(tdNarx);
+      tr.appendChild(tdQty);
+      tr.appendChild(tdSum);
+      table.appendChild(tr);
+    });
+
+    const totalTr = document.createElement('tr');
+    totalTr.className = 'totalRow';
+    totalTr.innerHTML = '<td>Jami</td><td></td><td class="num">'+catQty+'</td><td class="num">'+fmt(catVal)+'</td>';
+    table.appendChild(totalTr);
+
+    tablesEl.appendChild(table);
+  });
+
+  if (tablesEl.innerHTML === ''){
+    tablesEl.innerHTML = '<div style="color:#999;font-size:13px;">Hech narsa topilmadi.</div>';
+  }
+}
+
+function updateSummary(){
+  let grandQty = 0, grandVal = 0;
+  DATA.forEach(it => { grandQty += it.miqdor; grandVal += it.miqdor * it.narx; });
+  document.getElementById('sumQty').textContent = fmt(grandQty);
+  document.getElementById('sumVal').textContent = fmt(grandVal) + " so'm";
+}
+
+document.getElementById('search').addEventListener('input', e => { render(e.target.value.toLowerCase()); });
+document.getElementById('resetBtn').addEventListener('click', () => {
+  DATA = JSON.parse(JSON.stringify(DEFAULT_DATA));
+  saveData(DATA);
+  render(document.getElementById('search').value.toLowerCase());
+});
+
+function fillSelect(){
+  const sel = document.getElementById('b_tovar');
+  sel.innerHTML = '<option value="">Tovarni tanlang</option>';
+  DATA.forEach((it, idx) => {
+    const opt = document.createElement('option');
+    opt.value = idx;
+    opt.textContent = it.nomi + (it.rang && it.rang !== '-' ? ' (' + it.rang + ')' : '') + ' - qoldiq: ' + it.miqdor;
+    sel.appendChild(opt);
+  });
+  const dateInput = document.getElementById('b_sana');
+  if (!dateInput.value){
+    const today = new Date();
+    dateInput.value = today.toISOString().slice(0,10);
+  }
+}
+
+document.getElementById('addBtn').onclick = () => {
+  const idx = document.getElementById('b_tovar').value;
+  const miqdor = parseFloat(document.getElementById('b_miqdor').value);
+  const kimga = document.getElementById('b_kimga').value.trim();
+  const sana = document.getElementById('b_sana').value;
+  const err = document.getElementById('b_err');
+
+  if (idx === '' || isNaN(miqdor) || miqdor <= 0 || !sana){
+    err.textContent = 'Tovar, miqdor va sanani to\'g\'ri kiriting.';
+    return;
+  }
+  const item = DATA[idx];
+  if (miqdor > item.miqdor){
+    err.textContent = 'Skladda yetarli miqdor yo\'q (qoldiq: ' + item.miqdor + ').';
+    return;
+  }
+  err.textContent = '';
+
+  DATA[idx].miqdor -= miqdor;
+  saveData(DATA);
+
+  LOG.push({
+    id: Date.now(),
+    tovar: item.nomi + (item.rang && item.rang !== '-' ? ' (' + item.rang + ')' : ''),
+    miqdor,
+    narx: item.narx,
+    kimga: kimga || '-',
+    sana
+  });
+  saveLog(LOG);
+
+  document.getElementById('b_miqdor').value = '';
+  document.getElementById('b_kimga').value = '';
+
+  fillSelect();
+  renderLog();
+};
+
+function renderLog(){
+  const listEl = document.getElementById('logList');
+  listEl.innerHTML = '';
+
+  const today = new Date().toISOString().slice(0,10);
+  const curMonth = today.slice(0,7);
+
+  let todayQty = 0, monthQty = 0;
+  LOG.forEach(l => {
+    if (l.sana === today) todayQty += l.miqdor;
+    if (l.sana && l.sana.slice(0,7) === curMonth) monthQty += l.miqdor;
+  });
+  document.getElementById('todayQty').textContent = fmt(todayQty);
+  document.getElementById('monthQty').textContent = fmt(monthQty);
+
+  if (LOG.length === 0){
+    listEl.innerHTML = '<div style="color:#999;font-size:13px;">Hali yozuv yo\'q.</div>';
+    return;
+  }
+
+  const byDate = {};
+  LOG.forEach(l => {
+    if (!byDate[l.sana]) byDate[l.sana] = [];
+    byDate[l.sana].push(l);
+  });
+
+  Object.keys(byDate).sort().reverse().forEach(date => {
+    const entries = byDate[date];
+    let dayTotal = 0;
+    entries.forEach(e => dayTotal += e.miqdor * e.narx);
+
+    const group = document.createElement('div');
+    group.className = 'dayGroup';
+
+    const head = document.createElement('div');
+    head.className = 'dayHead';
+    head.innerHTML = '<span>' + date + '</span><span>' + fmt(dayTotal) + " so'm</span>";
+    group.appendChild(head);
+
+    entries.forEach(e => {
+      const row = document.createElement('div');
+      row.className = 'logRow';
+      row.innerHTML = '<span>' + e.tovar + ' x' + e.miqdor + ' &rarr; ' + e.kimga + '</span>' +
+        '<span style="display:flex;align-items:center;gap:8px;"><span>' + fmt(e.miqdor * e.narx) + " so'm</span><button class=\"delBtn\" data-id=\"" + e.id + "\">&times;</button></span>";
+      group.appendChild(row);
+    });
+
+    listEl.appendChild(group);
+  });
+
+  listEl.querySelectorAll('.delBtn').forEach(btn => {
+    btn.onclick = () => {
+      const id = parseInt(btn.dataset.id);
+      const entry = LOG.find(l => l.id === id);
+      if (entry){
+        const dataIdx = DATA.findIndex(it => (it.nomi + (it.rang && it.rang !== '-' ? ' (' + it.rang + ')' : '')) === entry.tovar);
+        if (dataIdx >= 0){
+          DATA[dataIdx].miqdor += entry.miqdor;
+          saveData(DATA);
+        }
+      }
+      LOG = LOG.filter(l => l.id !== id);
+      saveLog(LOG);
+      fillSelect();
+      renderLog();
+    };
+  });
+}
+
+render('');
+</script>
+</body>
+</html>
