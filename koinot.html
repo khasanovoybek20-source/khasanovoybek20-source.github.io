@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Koinot — Quyosh sistemasi</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+  :root{
+    --bg:#03040a;
+    --panel:rgba(9,12,22,0.78);
+    --panel-border:rgba(255,255,255,0.09);
+    --text:#eef1f8;
+    --muted:#8991a8;
+    --accent:#ffb454;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;width:100%;height:100%;background:var(--bg);overflow:hidden;
+    font-family:'Inter',system-ui,sans-serif;color:var(--text);}
+  canvas{display:block;touch-action:none;}
+
+  #title{
+    position:fixed;top:18px;left:20px;z-index:10;pointer-events:none;
+    font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.01em;
+  }
+  #title span{display:block;font-family:'Inter';font-weight:400;font-size:11px;color:var(--muted);margin-top:2px;}
+
+  #hint{
+    position:fixed;top:20px;right:20px;z-index:10;font-size:11px;color:var(--muted);
+    background:var(--panel);border:1px solid var(--panel-border);padding:7px 12px;border-radius:20px;
+    transition:opacity 0.6s ease;
+  }
+
+  #back-btn{
+    position:fixed;top:64px;left:20px;z-index:10;display:none;
+    font-family:'Space Grotesk';font-weight:600;font-size:12.5px;color:var(--text);
+    background:var(--panel);border:1px solid var(--panel-border);padding:9px 15px;border-radius:20px;
+    cursor:pointer;backdrop-filter:blur(6px);
+  }
+
+  #info-panel{
+    position:fixed;left:0;right:0;bottom:0;z-index:10;
+    padding:20px 22px calc(20px + env(safe-area-inset-bottom)) 22px;
+    background:linear-gradient(to top, rgba(3,4,10,0.95) 55%, rgba(3,4,10,0));
+    transform:translateY(110%);transition:transform 0.5s cubic-bezier(.2,.8,.2,1);
+    max-width:520px;
+  }
+  #info-panel.show{transform:translateY(0);}
+  #info-name{font-family:'Space Grotesk';font-weight:700;font-size:26px;margin:0 0 2px 0;color:var(--accent);}
+  #info-tagline{font-size:12.5px;color:var(--muted);margin-bottom:14px;}
+  .fact-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 14px;margin-bottom:12px;}
+  .fact{background:var(--panel);border:1px solid var(--panel-border);border-radius:10px;padding:9px 11px;}
+  .fact .k{font-size:9.5px;color:var(--muted);margin-bottom:2px;}
+  .fact .v{font-size:13px;font-weight:600;}
+  #info-note{font-size:12px;color:#c7cede;line-height:1.5;background:var(--panel);border:1px solid var(--panel-border);
+    padding:10px 13px;border-radius:10px;}
+
+  #overview-label{
+    position:fixed;left:20px;bottom:20px;z-index:10;max-width:280px;
+    transition:opacity 0.4s ease;
+  }
+  #overview-label h1{font-family:'Space Grotesk';font-weight:700;font-size:19px;margin:0 0 4px 0;}
+  #overview-label p{font-size:12px;color:var(--muted);margin:0;line-height:1.5;}
+
+  @media (max-width:640px){
+    #info-panel{max-width:none;}
+    .fact-grid{grid-template-columns:repeat(2,1fr);}
+    #info-name{font-size:22px;}
+  }
+</style>
+</head>
+<body>
+
+<div id="title">🌌 KOINOT<span>Quyosh sistemasi — 360° sayohat</span></div>
+<div id="hint">Aylantirish: torting · Kattalashtirish: g'ildirak</div>
+<div id="back-btn">← Quyosh sistemasiga qaytish</div>
+
+<div id="overview-label">
+  <h1>Sayyorani tanlang</h1>
+  <p>Istalgan sayyora ustiga bosing — o'sha sayyoraga "borasiz" va uning bir kuni qancha davom etishi, harorati va boshqa ma'lumotlarni ko'rasiz.</p>
+</div>
+
+<div id="info-panel">
+  <div id="info-name">—</div>
+  <div id="info-tagline">—</div>
+  <div class="fact-grid" id="fact-grid"></div>
+  <div id="info-note"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+"use strict";
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(52, window.innerWidth/window.innerHeight, 0.1, 3000);
+const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+window.addEventListener('resize', ()=>{
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// dim ambient so the sun creates a real day/night terminator on planets
+scene.add(new THREE.AmbientLight(0xffffff, 0.06));
+const sunLight = new THREE.PointLight(0xffffff, 2.4, 0, 0.35);
+scene.add(sunLight);
+
+// starfield
+(function(){
+  const N=2000;
+  const g = new THREE.BufferGeometry();
+  const pos = new Float32Array(N*3);
+  for(let i=0;i<N;i++){
+    const r = 500+Math.random()*900;
+    const th=Math.random()*Math.PI*2, ph=Math.acos(2*Math.random()-1);
+    pos[i*3]=r*Math.sin(ph)*Math.cos(th);
+    pos[i*3+1]=r*Math.cos(ph);
+    pos[i*3+2]=r*Math.sin(ph)*Math.sin(th);
+  }
+  g.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  const m = new THREE.PointsMaterial({color:0xffffff, size:1.3, transparent:true, opacity:0.7});
+  scene.add(new THREE.Points(g,m));
+})();
+
+// sun
+const sunGroup = new THREE.Group();
+const sunMesh = new THREE.Mesh(
+  new THREE.SphereGeometry(14,24,18),
+  new THREE.MeshBasicMaterial({color:0xffdd88})
+);
+sunGroup.add(sunMesh);
+const glow = new THREE.Mesh(
+  new THREE.SphereGeometry(17,24,18),
+  new THREE.MeshBasicMaterial({color:0xffb454, transparent:true, opacity:0.25})
+);
+sunGroup.add(glow);
+scene.add(sunGroup);
+
+// ---------------- planet data ----------------
+const planets = [
+  { id:'mercury', name:'Merkuriy', color:0x9c9c9c, radius:2.0, orbitR:34, orbitSpeed:0.045, spin:0.004,
+    tagline:'Quyoshga eng yaqin, eng kichik sayyora',
+    facts:{ 'Quyoshdan masofa':'57,9 mln km', 'Bir kun (o\'z o\'qida)':'59 Yer kuni', 'Bir yil':'88 Yer kuni', 'Harorat':'−173°C dan 427°C gacha', 'Yo\'ldoshlar':'yo\'q' },
+    note:"Merkuriyda atmosfera deyarli yo'q, shuning uchun kunduzi juda issiq, kechasi esa juda sovuq bo'ladi — harorat farqi Quyosh sistemasidagi eng katta farqdir." },
+  { id:'venus', name:'Venera', color:0xe8c88a, radius:2.5, orbitR:46, orbitSpeed:0.033, spin:-0.0006,
+    tagline:'Eng issiq sayyora, qalin bulutlar ostida',
+    facts:{ 'Quyoshdan masofa':'108,2 mln km', 'Bir kun (o\'z o\'qida)':'243 Yer kuni', 'Bir yil':'225 Yer kuni', 'Harorat':'≈464°C (doimiy)', 'Yo\'ldoshlar':'yo\'q' },
+    note:"Venera o'z o'qi atrofida orqaga (teskari) aylanadi, shuning uchun unda kun yildan uzunroq. Qalin karbonat angidrid atmosferasi issiqlikni ushlab qoladi." },
+  { id:'earth', name:'Yer', color:0x3a7bd5, radius:2.6, orbitR:60, orbitSpeed:0.028, spin:0.02,
+    tagline:'Bizning uyimiz — hayot mavjud yagona ma\'lum sayyora',
+    facts:{ 'Quyoshdan masofa':'149,6 mln km', 'Bir kun (o\'z o\'qida)':'24 soat', 'Bir yil':'365,25 kun', 'O\'rtacha harorat':'≈15°C', 'Yo\'ldoshlar':'1 (Oy)' },
+    note:"Yerning o'q og'ishi (23,4°) fasllarni yuzaga keltiradi, aylanish tezligi esa kun va tunni belgilaydi." },
+  { id:'mars', name:'Mars', color:0xb5502a, radius:2.2, orbitR:76, orbitSpeed:0.022, spin:0.0195,
+    tagline:'Qizil sayyora, kelajakda odamlar uchun nomzod',
+    facts:{ 'Quyoshdan masofa':'227,9 mln km', 'Bir kun (o\'z o\'qida)':'24,6 soat', 'Bir yil':'687 kun', 'O\'rtacha harorat':'≈−63°C', 'Yo\'ldoshlar':'2 (Fobos, Deymos)' },
+    note:"Marsning kuni Yernikiga juda yaqin (24 soat 37 daqiqa), lekin yili deyarli 2 barobar uzunroq — chunki Quyoshdan uzoqroq joylashgan." },
+  { id:'jupiter', name:'Yupiter', color:0xd9a066, radius:7.2, orbitR:104, orbitSpeed:0.012, spin:0.05,
+    tagline:'Eng katta sayyora — gigant gaz olovi',
+    facts:{ 'Quyoshdan masofa':'778,5 mln km', 'Bir kun (o\'z o\'qida)':'9,9 soat', 'Bir yil':'≈12 Yer yili', 'Harorat':'≈−108°C', 'Yo\'ldoshlar':'95 dan ortiq' },
+    note:"Yupiter shu qadar tez aylanadiki, bir kuni 10 soatdan ham kam — Quyosh sistemasidagi eng qisqa kun." },
+  { id:'saturn', name:'Saturn', color:0xe3c58a, radius:6.3, orbitR:132, orbitSpeed:0.009, spin:0.046, hasRings:true,
+    tagline:'Muzli halqalari bilan mashhur gigant',
+    facts:{ 'Quyoshdan masofa':'1,434 mlrd km', 'Bir kun (o\'z o\'qida)':'10,7 soat', 'Bir yil':'≈29 Yer yili', 'Harorat':'≈−138°C', 'Yo\'ldoshlar':'146 dan ortiq' },
+    note:"Saturnning halqalari asosan muz va tosh bo'laklaridan iborat — ba'zilari uy kattaligida, ba'zilari tog' kattaligida." },
+  { id:'uranus', name:'Uran', color:0x9fe6e6, radius:4.4, orbitR:158, orbitSpeed:0.0064, spin:-0.03,
+    tagline:'Yon tomonga "yotib" aylanadigan muzli gigant',
+    facts:{ 'Quyoshdan masofa':'2,871 mlrd km', 'Bir kun (o\'z o\'qida)':'17,2 soat', 'Bir yil':'≈84 Yer yili', 'Harorat':'≈−195°C', 'Yo\'ldoshlar':'27' },
+    note:"Uranning o'qi deyarli 98° og'gan — u boshqa sayyoralardan farqli o'laroq, yonboshlab Quyosh atrofida aylanadi." },
+  { id:'neptune', name:'Neptun', color:0x3f5fd9, radius:4.3, orbitR:182, orbitSpeed:0.0052, spin:0.032,
+    tagline:'Quyoshdan eng uzoq, eng shamolli sayyora',
+    facts:{ 'Quyoshdan masofa':'4,495 mlrd km', 'Bir kun (o\'z o\'qida)':'16,1 soat', 'Bir yil':'≈165 Yer yili', 'Harorat':'≈−200°C', 'Yo\'ldoshlar':'14' },
+    note:"Neptunda Quyosh sistemasidagi eng kuchli shamollar kuzatiladi — tezligi soatiga 2000 km dan oshishi mumkin." }
+];
+
+const planetMeshes = [];
+planets.forEach(p=>{
+  const orbit = new THREE.Group();
+  scene.add(orbit);
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(p.radius, 20, 16),
+    new THREE.MeshStandardMaterial({color:p.color, roughness:0.85, metalness:0.05})
+  );
+  mesh.position.x = p.orbitR;
+  orbit.add(mesh);
+
+  if(p.hasRings){
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(p.radius*1.5, p.radius*2.5, 48),
+      new THREE.MeshBasicMaterial({color:0xcdb98a, side:THREE.DoubleSide, transparent:true, opacity:0.75})
+    );
+    ring.rotation.x = Math.PI/2.4;
+    mesh.add(ring);
+  }
+
+  // orbit path line
+  const orbitPts = [];
+  for(let i=0;i<=64;i++){ const a=(i/64)*Math.PI*2; orbitPts.push(new THREE.Vector3(Math.cos(a)*p.orbitR,0,Math.sin(a)*p.orbitR)); }
+  const orbitLine = new THREE.LineLoop(
+    new THREE.BufferGeometry().setFromPoints(orbitPts),
+    new THREE.LineBasicMaterial({color:0x445066, transparent:true, opacity:0.5})
+  );
+  scene.add(orbitLine);
+
+  planetMeshes.push({data:p, mesh, orbitGroup:orbit, angle:Math.random()*Math.PI*2});
+});
+
+// asteroid belt between Mars and Jupiter
+(function(){
+  const beltR0 = 86, beltR1 = 96;
+  const N=260;
+  const g = new THREE.BufferGeometry();
+  const pos = new Float32Array(N*3);
+  for(let i=0;i<N;i++){
+    const r = beltR0 + Math.random()*(beltR1-beltR0);
+    const a = Math.random()*Math.PI*2;
+    pos[i*3]=Math.cos(a)*r; pos[i*3+1]=(Math.random()-0.5)*2; pos[i*3+2]=Math.sin(a)*r;
+  }
+  g.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  const m = new THREE.PointsMaterial({color:0x9c8f7a, size:0.6});
+  const belt = new THREE.Points(g,m);
+  scene.add(belt);
+})();
+
+// ---------------- camera controls ----------------
+const target = new THREE.Vector3(0,0,0);
+const camState = { theta:0.7, phi:1.1, radius:230, minR:8, maxR:420 };
+let dragging=false, lastX=0, lastY=0;
+function updateCamera(){
+  const p = Math.max(0.25, Math.min(Math.PI-0.25, camState.phi));
+  camera.position.x = target.x + camState.radius*Math.sin(p)*Math.sin(camState.theta);
+  camera.position.y = target.y + camState.radius*Math.cos(p);
+  camera.position.z = target.z + camState.radius*Math.sin(p)*Math.cos(camState.theta);
+  camera.lookAt(target);
+}
+const dom = renderer.domElement;
+dom.addEventListener('pointerdown', e=>{ dragging=true; lastX=e.clientX; lastY=e.clientY; });
+window.addEventListener('pointerup', ()=> dragging=false);
+window.addEventListener('pointermove', e=>{
+  if(!dragging) return;
+  const dx=e.clientX-lastX, dy=e.clientY-lastY;
+  lastX=e.clientX; lastY=e.clientY;
+  camState.theta -= dx*0.005;
+  camState.phi -= dy*0.005;
+  document.getElementById('hint').style.opacity=0;
+});
+let dragMoved=0;
+dom.addEventListener('pointerdown', ()=> dragMoved=0);
+window.addEventListener('pointermove', e=>{ if(dragging) dragMoved += Math.abs(e.movementX||0)+Math.abs(e.movementY||0); });
+dom.addEventListener('wheel', e=>{
+  e.preventDefault();
+  camState.radius = Math.max(camState.minR, Math.min(camState.maxR, camState.radius + e.deltaY*0.12));
+}, {passive:false});
+
+// ---------------- selection / focus ----------------
+let focusedIdx = -1;
+const raycaster = new THREE.Raycaster();
+const mouseV = new THREE.Vector2();
+
+dom.addEventListener('click', e=>{
+  if(dragMoved > 6) return; // ignore drag-release as click
+  mouseV.x = (e.clientX/window.innerWidth)*2-1;
+  mouseV.y = -(e.clientY/window.innerHeight)*2+1;
+  raycaster.setFromCamera(mouseV, camera);
+  const hits = raycaster.intersectObjects(planetMeshes.map(pm=>pm.mesh));
+  if(hits.length){
+    const idx = planetMeshes.findIndex(pm=>pm.mesh===hits[0].object);
+    focusPlanet(idx);
+  } else {
+    const sunHit = raycaster.intersectObject(sunMesh);
+    if(sunHit.length) showSunInfo();
+  }
+});
+
+const infoPanel = document.getElementById('info-panel');
+const overviewLabel = document.getElementById('overview-label');
+const backBtn = document.getElementById('back-btn');
+const factGrid = document.getElementById('fact-grid');
+
+function focusPlanet(idx){
+  focusedIdx = idx;
+  const p = planets[idx];
+  camState.minR = p.radius*3;
+  camState.radius = Math.max(p.radius*7, 16);
+  document.getElementById('info-name').textContent = p.name;
+  document.getElementById('info-tagline').textContent = p.tagline;
+  document.getElementById('info-note').textContent = p.note;
+  factGrid.innerHTML = Object.entries(p.facts).map(([k,v])=>
+    `<div class="fact"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+  infoPanel.classList.add('show');
+  overviewLabel.style.opacity = 0;
+  backBtn.style.display = 'block';
+}
+function showSunInfo(){
+  focusedIdx = -2;
+  camState.minR = 20; camState.radius = 55;
+  document.getElementById('info-name').textContent = 'Quyosh';
+  document.getElementById('info-tagline').textContent = "Quyosh sistemasining markazi — bir yulduz";
+  document.getElementById('info-note').textContent = "Quyosh sistemadagi massaning 99,8% ini tashkil qiladi. Uning yorug'ligi Yerga yetib kelishi uchun taxminan 8 daqiqa 20 soniya vaqt ketadi.";
+  factGrid.innerHTML = ['Diametri: ≈1,39 mln km','Sirt harorati: ≈5500°C','Yosh: ≈4,6 mlrd yil','Turi: sariq mitti yulduz']
+    .map(v=>`<div class="fact"><div class="v">${v}</div></div>`).join('');
+  infoPanel.classList.add('show');
+  overviewLabel.style.opacity = 0;
+  backBtn.style.display = 'block';
+}
+function backToOverview(){
+  focusedIdx = -1;
+  camState.minR = 8; camState.maxR = 420;
+  camState.radius = 230;
+  infoPanel.classList.remove('show');
+  overviewLabel.style.opacity = 1;
+  backBtn.style.display = 'none';
+}
+backBtn.addEventListener('click', backToOverview);
+
+// ---------------- animation loop ----------------
+const clock = new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  const dt = Math.min(0.05, clock.getDelta());
+  sunMesh.rotation.y += dt*0.03;
+  glow.rotation.y -= dt*0.02;
+
+  planetMeshes.forEach(pm=>{
+    pm.angle += pm.data.orbitSpeed*dt*4;
+    pm.orbitGroup.rotation.y = pm.angle;
+    pm.mesh.rotation.y += pm.data.spin;
+  });
+
+  if(focusedIdx>=0){
+    const pm = planetMeshes[focusedIdx];
+    const wp = new THREE.Vector3();
+    pm.mesh.getWorldPosition(wp);
+    target.lerp(wp, 0.08);
+  } else if(focusedIdx===-2){
+    target.lerp(new THREE.Vector3(0,0,0), 0.08);
+  } else {
+    target.lerp(new THREE.Vector3(0,0,0), 0.05);
+  }
+
+  updateCamera();
+  renderer.render(scene, camera);
+}
+animate();
+
+setTimeout(()=>{ document.getElementById('hint').style.opacity=0; }, 6000);
+
+})();
+</script>
+</body>
+</html>
